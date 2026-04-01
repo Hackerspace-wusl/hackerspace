@@ -16,9 +16,7 @@ load_dotenv()
 app = Flask(__name__)
 ckeditor = CKEditor(app)
 app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
-app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv(
-    "DATABASE_URL", "sqlite:///hackerspace.db"
-)
+app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL")
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 # Initialize extensions
@@ -40,6 +38,7 @@ def get_user_by_id(user_id):
         return {"_id": ObjectId(user_id)}
 
 
+# Redundant function, keeping it if needed for legacy reasons or removing if not used
 def get_user_query(user_id):
     return get_user_by_id(user_id)
 
@@ -121,7 +120,10 @@ def login():
                 if bcrypt.check_password_hash(user_data["password"], password):
                     login_user(User(user_data))
                     print(f"Login successful for {email}")
-                    return redirect(url_for("index"))
+                    next_page = request.args.get("next")
+                    if not next_page or not next_page.startswith("/") or next_page.startswith("//"):
+                        next_page = url_for("index")
+                    return redirect(next_page)
                 else:
                     print(f"Invalid password for {email}")
                     flash("Invalid password")
@@ -161,6 +163,12 @@ def edit_profile():
             hashed_pw = bcrypt.generate_password_hash(password).decode("utf-8")
             update_data["password"] = hashed_pw
 
+        # Check email uniqueness
+        if email.strip().lower() != current_user.email:
+            if get_users_col().find_one({"email": email.strip().lower()}):
+                flash("Email already in use by another account.")
+                return redirect(url_for("edit_profile"))
+
         try:
             get_users_col().update_one(
                 get_user_by_id(current_user.id), {"$set": update_data}
@@ -190,14 +198,14 @@ def news():
 @app.route("/make-admin")
 @login_required
 def make_admin():
-    try:
-        # Security: Only allow self-promotion if no super admins exist
-        if get_users_col().count_documents({"role": "super_admin"}) > 0:
-            flash("Action denied. A super admin already exists.")
-            return redirect(url_for("index"))
+    # Security: Only allow self-promotion if no super admins exist
+    if get_users_col().count_documents({"role": "super_admin"}) > 0:
+        flash("Action denied. A super admin already exists.")
+        return redirect(url_for("index"))
 
+    try:
         get_users_col().update_one(
-            get_user_query(current_user.id), {"$set": {"role": "super_admin"}}
+            get_user_by_id(current_user.id), {"$set": {"role": "super_admin"}}
         )
         current_user.role = "super_admin"
         flash("Success! Your account has been upgraded to super admin.")
@@ -310,6 +318,7 @@ def manage_content():
 @app.route("/edit-content/<type>/<int:id>", methods=["GET", "POST"])
 @login_required
 def edit_content(type, id):
+    type = type.lower()
     if type == "news":
         item = db.session.get(Article, id)
     else:
@@ -380,6 +389,7 @@ def edit_content(type, id):
 @app.route("/toggle-visibility/<type>/<int:id>")
 @login_required
 def toggle_visibility(type, id):
+    type = type.lower()
     if type == "news":
         item = db.session.get(Article, id)
     else:
@@ -398,6 +408,7 @@ def toggle_visibility(type, id):
 @app.route("/delete-content/<type>/<int:id>")
 @login_required
 def delete_content(type, id):
+    type = type.lower()
     if type == "news":
         item = db.session.get(Article, id)
     else:
@@ -460,7 +471,8 @@ def manage_users():
             flash(f"Error updating role: {e}")
         return redirect(url_for("manage_users"))
 
-    users = list(get_users_col().find())
+    # Exclude password hashes from the query for security
+    users = list(get_users_col().find({}, {"password": 0}))
     return render_template("manage_users.html", users=users)
 
 

@@ -224,7 +224,7 @@ nav {
 
 .profile-popup-header {
     background: linear-gradient(135deg, var(--dark-brown), #5d4037);
-    padding: 1.5rem;
+    padding: 1.0rem;
     display: flex;
     align-items: center;
     gap: 1rem;
@@ -280,7 +280,7 @@ nav {
 .role-tag {
     font-size: 0.7rem;
     background: rgba(255, 255, 255, 0.15);
-    padding: 0.1rem 0.5rem;
+    padding: 0.1rem 0.1rem 0.1rem 0.1rem;
     border-radius: 4px;
     text-transform: uppercase;
     font-weight: 700;

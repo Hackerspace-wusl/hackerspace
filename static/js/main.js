@@ -237,6 +237,7 @@ async function fetchArticlesOnNews() {
 
 async function fetchReminders() {
     const list = document.getElementById('reminder-list');
+    if (!list) return;
 
     try {
         const response = await fetch('/api/reminders');

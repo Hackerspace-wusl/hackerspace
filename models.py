@@ -81,12 +81,17 @@ class ContentBlock(db.Model):
     project_id = db.Column(db.Integer, db.ForeignKey("project.id"))
 
     type = db.Column(db.String(50))  # 'text' or 'media'
-    sub_type = db.Column(db.String(50))  # 'paragraph', 'heading', 'image', 'video'
+    sub_type = db.Column(db.String(50))  # e.g., paragraph, heading, image
     value = db.Column(db.Text)  # The actual content or URL
     sequence = db.Column(db.Integer)  # Keeps the order of blocks
 
     def to_dict(self):
-        return {"type": self.type, "sub_type": self.sub_type, "value": self.value}
+        return {
+            "id": self.id,
+            "type": self.type,
+            "sub_type": self.sub_type,
+            "value": self.value,
+        }
 
 
 class Reminder(db.Model):
